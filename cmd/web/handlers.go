@@ -20,9 +20,13 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		app.serverError(w, err)
 		return
 	}
+
+	//use the helper function to create a struct for holing data that include the current year
+	data := app.newTemplateData(r)
+	data.Snippets = snippets
 	//we can create the map of the templates once in main.go using the newTemplateCache() in template.go
 	//and then use the render() in helpers.go to execute the chosen template
-	app.render(w, http.StatusOK, "home.html", &templateData{Snippets: snippets})
+	app.render(w, http.StatusOK, "home.html", data)
 
 }
 
@@ -42,9 +46,13 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	//use the helper function to create a struct for holing data that include the current year
+	data := app.newTemplateData(r)
+	data.Snippet = snippet
 	//we can create the map of the templates once in main.go using the newTemplateCache() in template.go
 	//and then use the render() in helpers.go to execute the chosen template
-	app.render(w, http.StatusOK, "view.html", &templateData{Snippet: snippet})
+	app.render(w, http.StatusOK, "view.html", data)
 
 }
 

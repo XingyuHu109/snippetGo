@@ -4,11 +4,23 @@ import (
 	"html/template"
 	"path/filepath"
 	"snippetbox.xyh.net/internal/models"
+	"time"
 )
 
 type templateData struct {
-	Snippet  *models.Snippet
-	Snippets []*models.Snippet
+	CurrentYear int
+	Snippet     *models.Snippet
+	Snippets    []*models.Snippet
+}
+
+// returns a nicely formated time
+func humanDate(t time.Time) string {
+	return t.Format("02 Jan 2006 at 15:04")
+}
+
+// create a template.FuncMap object, this is basically a lookup map that helps us locate the right function name
+var functions = template.FuncMap{
+	"humanDate": humanDate,
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {
@@ -24,8 +36,11 @@ func newTemplateCache() (map[string]*template.Template, error) {
 	for _, page := range pages {
 		name := filepath.Base(page)
 
-		//Parse the base template into a template set
-		ts, err := template.ParseFiles("./ui/html/base.html")
+		// this is the way of registering a function in a template
+		// The template.FuncMap must be registered with the template set before you // call the ParseFiles() method. This means we have to use template.New() to
+		// create an empty template set, use the Funcs() method to register the
+		// template.FuncMap, and then parse the file as normal.
+		ts, err := template.New(name).Funcs(functions).ParseFiles("./ui/html/base.html")
 		if err != nil {
 			return nil, err
 		}
