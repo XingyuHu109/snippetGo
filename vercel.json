@@ -1,0 +1,8 @@
+{
+  "builds": [
+    {
+      "src": "*.go",
+      "use": "@vercel/go"
+    }
+  ]
+}

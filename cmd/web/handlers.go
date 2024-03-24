@@ -14,6 +14,7 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		app.notFound(w)
 		return
 	}
+
 	//retrieve the last 10 snippets
 	snippets, err := app.snippets.Latest()
 	if err != nil {
