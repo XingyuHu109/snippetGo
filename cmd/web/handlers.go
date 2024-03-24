@@ -1,9 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
+	"snippetbox.xyh.net/internal/models"
 	"strconv"
 )
 
@@ -13,23 +14,15 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		app.notFound(w)
 		return
 	}
-	//the template file must be the first in the slice
-	files := []string{"./ui/html/base.html",
-		"./ui/html/pages/home.html",
-		"./ui/html/partials/nav.html"}
-
-	ts, err := template.ParseFiles(files...)
+	//retrieve the last 10 snippets
+	snippets, err := app.snippets.Latest()
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
-
-	//now use Execute() method to write the template content to response body
-	//the second parameter in Execute() is any dynamic data, which we don't have any for now
-	err = ts.ExecuteTemplate(w, "base", nil)
-	if err != nil {
-		app.serverError(w, err)
-	}
+	//we can create the map of the templates once in main.go using the newTemplateCache() in template.go
+	//and then use the render() in helpers.go to execute the chosen template
+	app.render(w, http.StatusOK, "home.html", &templateData{Snippets: snippets})
 
 }
 
@@ -39,7 +32,20 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 		app.notFound(w)
 		return
 	}
-	fmt.Fprintf(w, "Display a specific snippet with ID %d...", id)
+	//use SnippetModel object's Get() to  retrieve the data for a specific record based on its id. If no matching record is found, return 404 response
+	snippet, err := app.snippets.Get(id)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			app.notFound(w)
+		} else {
+			app.serverError(w, err)
+		}
+		return
+	}
+	//we can create the map of the templates once in main.go using the newTemplateCache() in template.go
+	//and then use the render() in helpers.go to execute the chosen template
+	app.render(w, http.StatusOK, "view.html", &templateData{Snippet: snippet})
+
 }
 
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
@@ -48,5 +54,15 @@ func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 		app.clientError(w, http.StatusMethodNotAllowed)
 		return
 	}
-	w.Write([]byte("Create a new snippet..."))
+	//some dummy data
+	title := "O snail"
+	content := "O snail\nClimb Mount Fuji,\nBut slowly, slowly!\n\n– Kobayashi Issa"
+	expires := 7
+	id, err := app.snippets.Insert(title, content, expires)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+	//redirect the user to  the relevant page for the snippet
+	http.Redirect(w, r, fmt.Sprintf("/snippet/view?id=%d", id), http.StatusSeeOther)
 }
