@@ -11,7 +11,8 @@
             </tr>
             {{range .Snippets}}
             <tr>
-                <td><a href='/snippet/view?id={{.ID}}'>{{.Title}}</a></td>
+                <!-- we usd clean url here, the server is able to recognize the key through template such as {{.ID}} to be ID-->
+                <td><a href='/snippet/view/{{.ID}}'>{{.Title}}</a></td>
                 <td>{{humanDate .Created}}</td>
                 <td>#{{.ID}}</td>
             </tr>
