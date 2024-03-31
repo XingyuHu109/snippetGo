@@ -13,11 +13,23 @@ import (
 // this is used to represent the form data to be sent back to the user in case of a invalid field entry
 // use uppercase to let the html template render it
 // we also used tags to tell decoder how to map HTML form values into different struct fields
-
 type snippetCreateForm struct {
 	Title               string `form:"title"`
 	Content             string `form:"content"`
 	Expires             int    `form:"expires"` //the decoder will also automatically convert the type to int in this case
+	validator.Validator `form:"-"`
+}
+
+type userSignupForm struct {
+	Name                string `form:"name"`
+	Email               string `form:"email"`
+	Password            string `form:"password"`
+	validator.Validator `form:"-"`
+}
+
+type userLoginForm struct {
+	Email               string `form:"email"`
+	Password            string `form:"password"`
 	validator.Validator `form:"-"`
 }
 
@@ -125,17 +137,113 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 }
 
 func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Display a HTML form for signing up a new user...")
+	data := app.newTemplateData(r)
+	data.Form = userSignupForm{}
+	app.render(w, http.StatusOK, "signup.html", data)
+
 }
 func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Create a new user...")
+	// Declare an zero-valued instance of our userSignupForm struct.
+	var form userSignupForm
+	//the definition of userSignupForm Struct allows form.Decoder() to work
+	err := app.decodePostForm(r, &form)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	// Validate the form contents using our helper functions.
+	form.CheckField(validator.NotBlank(form.Name), "name", "This field cannot be blank")
+	form.CheckField(validator.NotBlank(form.Email), "email", "This field cannot be blank")
+	form.CheckField(validator.Matches(form.Email, validator.EmailRX), "email", "This field must be a valid email address")
+	form.CheckField(validator.NotBlank(form.Password), "password", "This field cannot be blank")
+	form.CheckField(validator.MinChars(form.Password, 8), "password", "This field must be at least 8 characters long")
+
+	//if there is any error in inputs, we need to redisplay the page with a 422 code
+	//however, unlike the error in creating snippets, we are not re-displaying the password
+	if !form.Valid() {
+		data := app.newTemplateData(r)
+		data.Form = form
+		app.render(w, http.StatusUnprocessableEntity, "signup.html", data)
+		return
+	}
+	//if no error in input
+	//check if the email is duplicate from the db entry
+	err = app.users.Insert(form.Name, form.Email, form.Password)
+	if err != nil {
+		if errors.Is(err, models.ErrDuplicateEmail) {
+			form.AddFieldError("email", "Email is already in use")
+			//error page returned to the user
+			data := app.newTemplateData(r)
+			data.Form = form
+			app.render(w, http.StatusUnprocessableEntity, "signup.html", data)
+		} else {
+			app.serverError(w, err)
+		}
+	}
+
+	//otherwise, the signup is successful, and we need to add a flash message to the current session
+	app.sessionManager.Put(r.Context(), "flash", "Account successfully created\nPlease log in.")
+	//redirect to the login paged
+	http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+
 }
 func (app *application) userLogin(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Display a HTML form for logging in a user...")
+	data := app.newTemplateData(r)
+	data.Form = userLoginForm{}
+	app.render(w, http.StatusOK, "login.html", data)
 }
 func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Authenticate and login the user...")
+	var form userLoginForm
+	//value written to form using decode
+	err := app.decodePostForm(r, &form)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+	// Do some validation checks on the form.
+	form.CheckField(validator.NotBlank(form.Email), "email", "This field cannot be blank")
+	form.CheckField(validator.Matches(form.Email, validator.EmailRX), "email", "This field must be a valid email address")
+	form.CheckField(validator.NotBlank(form.Password), "password", "This field cannot be blank")
+
+	if !form.Valid() {
+		data := app.newTemplateData(r)
+		data.Form = form
+		app.render(w, http.StatusUnprocessableEntity, "login.tmpl", data)
+		return
+	}
+
+	// Check whether the credentials are valid. If they're not, add a generic // non-field error message and re-display the login page.
+	id, err := app.users.Authenticate(form.Email, form.Password)
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidCredentials) {
+			form.AddNonFieldError("Email or password is incorrect")
+			data := app.newTemplateData(r)
+			data.Form = form
+			app.render(w, http.StatusUnprocessableEntity, "login.html", data)
+		} else {
+			app.serverError(w, err)
+		}
+		return
+	}
+
+	//renew the session id(change the session id)
+	//it is a good practice to generate a new session once an authentication stage changes(log in or out operation)
+	//this retains the data associated with the session, the reason behind this is to prevent session fixation attack
+	err = app.sessionManager.RenewToken(r.Context())
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	// Add the ID of the current user to the session, so that they are now // 'logged in'.
+	app.sessionManager.Put(r.Context(), "authenticatedUserID", id)
+
+	// Redirect the user to the create snippet page.
+	http.Redirect(w, r, "/snippet/create", http.StatusSeeOther)
+
 }
+
 func (app *application) userLogoutPost(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Logout the user...")
 }

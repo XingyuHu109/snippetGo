@@ -1,14 +1,22 @@
-FROM golang:alpine AS builder
-RUN apk add --no-cache --update \
-        git \
-        ca-certificates
-ADD . /app
-WORKDIR /app/cmd/web
-COPY go.mod ../../
-RUN go mod download
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o /main .
+FROM golang:1.22
 
-FROM alpine
-COPY --from=builder /main ./
-RUN chmod +x ./main
-ENTRYPOINT ["./main"]
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the Go module files to the working directory
+COPY go.mod go.sum ./
+
+# Download the Go module dependencies
+RUN go mod download
+
+# Copy the application source code to the working directory
+COPY . .
+
+# Build the Go application
+RUN go build -o main ./cmd/web
+
+# Expose the port on which the application will run (adjust if necessary)
+EXPOSE 8080
+
+# Set the entry point command to run the application
+CMD ["./main"]
