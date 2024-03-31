@@ -16,7 +16,7 @@ COPY . .
 RUN go build -o main ./cmd/web
 
 # Expose the port on which the application will run (adjust if necessary)
-EXPOSE 8080
+EXPOSE 4000
 
 # Set the entry point command to run the application
 CMD ["./main"]
