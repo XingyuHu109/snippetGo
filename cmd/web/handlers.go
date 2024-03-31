@@ -42,7 +42,9 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	//}
 
 	//retrieve the last 10 snippets
-	snippets, err := app.snippets.Latest()
+	//get userId from session data
+	userID := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
+	snippets, err := app.snippets.Latest(userID)
 	if err != nil {
 		app.serverError(w, err)
 		return
@@ -67,8 +69,10 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 		app.notFound(w)
 		return
 	}
+	//get userID from session data
+	userID := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
 	//use SnippetModel object's Get() to  retrieve the data for a specific record based on its id. If no matching record is found, return 404 response
-	snippet, err := app.snippets.Get(id)
+	snippet, err := app.snippets.Get(id, userID)
 	if err != nil {
 		if errors.Is(err, models.ErrNoRecord) {
 			app.notFound(w)
@@ -124,8 +128,9 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 		app.render(w, http.StatusUnprocessableEntity, "create.html", data)
 		return
 	}
-
-	id, err := app.snippets.Insert(form.Title, form.Content, form.Expires)
+	//get userID from session data
+	userID := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
+	id, err := app.snippets.Insert(form.Title, form.Content, form.Expires, userID)
 	if err != nil {
 		app.serverError(w, err)
 		return
@@ -193,6 +198,7 @@ func (app *application) userLogin(w http.ResponseWriter, r *http.Request) {
 	data.Form = userLoginForm{}
 	app.render(w, http.StatusOK, "login.html", data)
 }
+
 func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 	var form userLoginForm
 	//value written to form using decode
