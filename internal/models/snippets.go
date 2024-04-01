@@ -21,8 +21,17 @@ type SnippetModel struct {
 
 // Insert This will insert a new snippet into the database.
 func (m *SnippetModel) Insert(title string, content string, expires int, userID int) (int, error) {
-	stmt := `INSERT INTO snippets (title, content, created, expires, user_id) VALUES(?, ?, UTC_TIMESTAMP(), DATE_ADD(UTC_TIMESTAMP(), INTERVAL ? DAY), ?)`
-	result, err := m.DB.Exec(stmt, title, content, expires, userID)
+	//get the number of snippets created by the user
+	var maxID int
+	err := m.DB.QueryRow("SELECT COALESCE(MAX(user_snippet_id), 0) FROM snippets WHERE user_id = ?", userID).Scan(&maxID)
+	if err != nil {
+		return 0, err
+	}
+	//the new snippet id
+	userSnippetID := maxID + 1
+
+	stmt := `INSERT INTO snippets (title, content, created, expires, user_id,  user_snippet_id) VALUES(?, ?, UTC_TIMESTAMP(), DATE_ADD(UTC_TIMESTAMP(), INTERVAL ? DAY), ?, ?)`
+	result, err := m.DB.Exec(stmt, title, content, expires, userID, userSnippetID)
 	if err != nil {
 		return 0, err
 	}
@@ -36,7 +45,7 @@ func (m *SnippetModel) Insert(title string, content string, expires int, userID 
 
 // Get This will return a specific snippet based on its id.
 func (m *SnippetModel) Get(id int, userID int) (*Snippet, error) {
-	stmt := `SELECT id, title, content, created, expires FROM snippets WHERE expires > UTC_TIMESTAMP() AND id = ? AND user_id = ?`
+	stmt := `SELECT user_snippet_id, title, content, created, expires FROM snippets WHERE expires > UTC_TIMESTAMP() AND user_snippet_id = ? AND user_id = ?`
 	//use the QueryRow method, this returns a pointer to the sql.Row object which hold the result from the database
 	row := m.DB.QueryRow(stmt, id, userID)
 
@@ -57,7 +66,7 @@ func (m *SnippetModel) Get(id int, userID int) (*Snippet, error) {
 
 // Latest This will return the 10 most recently created snippets.
 func (m *SnippetModel) Latest(userID int) ([]*Snippet, error) {
-	stmt := `SELECT id, title, content, created, expires FROM snippets WHERE expires > UTC_TIMESTAMP() AND user_id = ? ORDER BY id DESC LIMIT 10`
+	stmt := `SELECT  user_snippet_id, title, content, created, expires FROM snippets WHERE expires > UTC_TIMESTAMP() AND user_id = ? ORDER BY id DESC LIMIT 10`
 	rows, err := m.DB.Query(stmt, userID)
 	if err != nil {
 		return nil, err

@@ -19,6 +19,10 @@
             {{end}}
         </table>
     {{else}}
-        <p>There's nothing to see here... yet!</p>
+        {{if .IsAuthenticated}}
+            <p>Click <a href='/snippet/create/'>Create snippet</a> to create your first snippet ʕ •ᴥ•ʔ </p>
+        {{else}}
+            <p>Please <a href='/user/signup/'>Sign Up</a> or <a href='/user/login/'>log In</a> first ʕ •ᴥ•ʔ </p>
+        {{end}}
     {{end}}
 {{end}}

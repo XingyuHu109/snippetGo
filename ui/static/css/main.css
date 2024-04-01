@@ -226,10 +226,15 @@ button:hover {
     border-radius: 3px;
 }
 
+
 .snippet pre {
     padding: 18px;
-    border-top: 1px solid #E4E5E7;
+    border-top: 1px #E4E5E7;
     border-bottom: 1px solid #E4E5E7;
+    white-space: pre-wrap; /* Allows long lines to wrap */
+    word-wrap: break-word; /* Ensures words do not break in the middle */
+    overflow-y: auto; /* Enables vertical scrolling if content exceeds the element's height */
+    max-height: 400px; /* Sets a maximum height for the element */
 }
 
 .snippet .metadata {
