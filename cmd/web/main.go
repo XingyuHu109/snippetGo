@@ -47,6 +47,7 @@ func main() {
 	//db, err := openDB(*dsn)
 
 	password := os.Getenv("DB_PASSWORD")
+	log.Printf("========================================the password is %s", password)
 	expandedDSN := fmt.Sprintf("xyh:%s@tcp(snippetapp.mysql.database.azure.com:3306)/snippet?parseTime=true&tls=true", password)
 	db, err := openDB(expandedDSN)
 	if err != nil {
