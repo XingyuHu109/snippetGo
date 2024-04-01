@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"fmt"
 	"github.com/alexedwards/scs/mysqlstore"
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-playground/form/v4"
@@ -33,9 +34,9 @@ func main() {
 
 	//add a command line flag for the mysql data source name string
 	//dsn := flag.String("dsn", "web:1234@/snippetbox?parseTime=true", "MySQL data source name")
-	dsn := flag.String("dsn", "xyh:${DB_PASSWORD}@tcp(snippetapp.mysql.database.azure.com:3306)/snippet?parseTime=true&tls=true", "MySQL data source name")
-	//parse the command line flag
-	flag.Parse()
+	//dsn := flag.String("dsn", "xyh:${DB_PASSWORD}@tcp(snippetapp.mysql.database.azure.com:3306)/snippet?parseTime=true&tls=true", "MySQL data source name")
+	////parse the command line flag
+	//flag.Parse()
 
 	//create new loggers to separate information and errors.
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
@@ -44,7 +45,9 @@ func main() {
 
 	//create the connection pool
 	//db, err := openDB(*dsn)
-	expandedDSN := os.ExpandEnv(*dsn)
+
+	password := os.Getenv("DB_PASSWORD")
+	expandedDSN := fmt.Sprintf("xyh:%s@tcp(snippetapp.mysql.database.azure.com:3306)/snippet?parseTime=true&tls=true", password)
 	db, err := openDB(expandedDSN)
 	if err != nil {
 		errorLog.Fatal(err)
