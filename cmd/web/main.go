@@ -33,7 +33,7 @@ func main() {
 
 	//add a command line flag for the mysql data source name string
 	//dsn := flag.String("dsn", "web:1234@/snippetbox?parseTime=true", "MySQL data source name")
-	dsn := flag.String("dsn", "xyh:***REMOVED***@tcp(snippetapp.mysql.database.azure.com:3306)/snippet?parseTime=true&tls=true", "MySQL data source name")
+	dsn := flag.String("dsn", "xyh:${DB_PASSWORD}@tcp(snippetapp.mysql.database.azure.com:3306)/snippet?parseTime=true&tls=true", "MySQL data source name")
 	//parse the command line flag
 	flag.Parse()
 
@@ -43,7 +43,9 @@ func main() {
 	//putting these 2 log dependencies into the struct
 
 	//create the connection pool
-	db, err := openDB(*dsn)
+	//db, err := openDB(*dsn)
+	expandedDSN := os.ExpandEnv(*dsn)
+	db, err := openDB(expandedDSN)
 	if err != nil {
 		errorLog.Fatal(err)
 	}
