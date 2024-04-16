@@ -1,4 +1,4 @@
-Project SnippetBox while following the book "Let's go" by Alex Edwards.
+
 
 ## Features
 - User registration and authentication
@@ -8,8 +8,6 @@ Project SnippetBox while following the book "Let's go" by Alex Edwards.
 - Secure session management
 - Input validation and error handling
 - Integration with a MySQL database for data persistence 
-
-## Modifications
 - User-specific snippet management:
  - Users can create and view their own code snippets
  - Snippets are associated with the user who created them
